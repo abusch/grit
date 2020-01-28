@@ -1,3 +1,4 @@
+use chrono::{naive::NaiveDateTime, offset::FixedOffset, DateTime, TimeZone, Utc};
 use crossterm::{
     cursor,
     event::{self, KeyCode},
@@ -33,12 +34,23 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     queue!(w, cursor::Hide)?; // hiding the cursor
 
     let events = EventSource::new()?;
-    let mut rx = events.receiver();
+    let rx = events.receiver();
 
     let mut area = Area::full_screen();
     // area.pad(1, 1);
     // area.pad_for_max_width(120);
     let columns = vec![
+        ListViewColumn::new(
+            "commit date",
+            6,
+            26,
+            Box::new(|t: &Commit| {
+                let when = t.author().when();
+                let offset = FixedOffset::east(when.offset_minutes() * 60);
+                let date_time = offset.timestamp(when.seconds(), 0);
+                ListViewCell::new(date_time.to_string(), &SKIN.paragraph.compound_style)
+            }),
+        ),
         ListViewColumn::new(
             "author",
             6,
