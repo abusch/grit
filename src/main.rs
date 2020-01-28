@@ -1,8 +1,8 @@
 use crossterm::{
     cursor,
-    event::{self, Event, KeyCode::*, KeyEvent},
+    event::{self, KeyCode},
     queue,
-    style::Color::*,
+    style::{Attribute, Color::*},
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use git2::{Commit, Repository, Sort};
@@ -10,10 +10,19 @@ use lazy_static::lazy_static;
 use minimad::TextTemplate;
 use std::error::Error;
 use std::io::Write;
-use termimad::{Alignment, Area, ListView, ListViewCell, ListViewColumn, MadSkin};
+use termimad::{
+    ansi, Alignment, Area, CompoundStyle, Event, EventSource, ListView, ListViewCell,
+    ListViewColumn, MadSkin,
+};
+
+// mod screen;
+//
+const UP: Event = Event::simple_key(KeyCode::Up);
+const DOWN: Event = Event::simple_key(KeyCode::Down);
+const ESC: Event = Event::simple_key(KeyCode::Esc);
 
 lazy_static! {
-    static ref SKIN: MadSkin = termimad::MadSkin::default();
+    static ref SKIN: MadSkin = make_skin();
 }
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -22,6 +31,9 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     queue!(w, EnterAlternateScreen)?;
     terminal::enable_raw_mode()?;
     queue!(w, cursor::Hide)?; // hiding the cursor
+
+    let events = EventSource::new()?;
+    let mut rx = events.receiver();
 
     let mut area = Area::full_screen();
     // area.pad(1, 1);
@@ -89,8 +101,22 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     //         status_entry.path().unwrap()
     //     );
     // }
-    commit_list.write_on(&mut w)?;
-    event::read()?;
+    loop {
+        let mut quit = false;
+        commit_list.write_on(&mut w)?;
+        if let Ok(event) = rx.recv() {
+            match event {
+                UP => commit_list.try_select_next(true),
+                DOWN => commit_list.try_select_next(false),
+                ESC => quit = true,
+                _ => (),
+            }
+        } else {
+            break;
+        }
+
+        events.unblock(quit);
+    }
 
     terminal::disable_raw_mode()?;
     queue!(w, cursor::Show)?; // we must restore the cursor
@@ -98,4 +124,13 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     w.flush()?;
 
     Ok(())
+}
+
+fn make_skin() -> MadSkin {
+    let mut skin = MadSkin::default();
+    skin.headers[0].compound_style = CompoundStyle::with_attr(Attribute::Bold);
+    skin.headers[0].align = Alignment::Left;
+    skin.italic.set_fg(ansi(225));
+    skin.bold = CompoundStyle::with_fg(Blue);
+    skin
 }
