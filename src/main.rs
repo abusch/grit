@@ -20,6 +20,10 @@ use termimad::{
 //
 const UP: Event = Event::simple_key(KeyCode::Up);
 const DOWN: Event = Event::simple_key(KeyCode::Down);
+const PAGE_UP: Event = Event::simple_key(KeyCode::PageUp);
+const PAGE_DOWN: Event = Event::simple_key(KeyCode::PageDown);
+const HOME: Event = Event::simple_key(KeyCode::Home);
+const END: Event = Event::simple_key(KeyCode::End);
 const ESC: Event = Event::simple_key(KeyCode::Esc);
 
 lazy_static! {
@@ -37,8 +41,6 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let rx = events.receiver();
 
     let mut area = Area::full_screen();
-    // area.pad(1, 1);
-    // area.pad_for_max_width(120);
     let columns = vec![
         ListViewColumn::new(
             "commit date",
@@ -98,7 +100,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         commit_list.add_row(commit);
         count += 1;
     }
-    commit_list.try_scroll_lines(-count);
+    // commit_list.try_scroll_lines(-count);
     commit_list.select_first_line();
     commit_list.update_dimensions();
 
@@ -120,6 +122,10 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             match event {
                 UP => commit_list.try_select_next(true),
                 DOWN => commit_list.try_select_next(false),
+                PAGE_UP => commit_list.try_scroll_pages(-1),
+                PAGE_DOWN => commit_list.try_scroll_pages(1),
+                HOME => commit_list.select_first_line(),
+                END => commit_list.select_last_line(),
                 ESC => quit = true,
                 _ => (),
             }
