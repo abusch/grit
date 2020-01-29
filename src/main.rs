@@ -8,7 +8,6 @@ use crossterm::{
 };
 use git2::{Commit, Repository, Sort};
 use lazy_static::lazy_static;
-use minimad::TextTemplate;
 use std::error::Error;
 use std::io::Write;
 use termimad::{
