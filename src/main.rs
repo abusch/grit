@@ -40,6 +40,8 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let events = EventSource::new()?;
     let rx = events.receiver();
 
+    let pwd = std::env::current_dir()?;
+    let repo = Repository::discover(pwd)?;
     let mut area = Area::full_screen();
     let columns = vec![
         ListViewColumn::new(
@@ -80,7 +82,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         )
         .with_align(Alignment::Left),
     ];
-    let repo = Repository::open("/home/abusch/code/rust/rustracer").unwrap();
+    // let repo = Repository::open("/home/abusch/code/rust/rustracer").unwrap();
     let mut commit_list = ListView::new(area, columns, &SKIN);
 
     // println!("State: {:?}", repo.state());
