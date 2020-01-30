@@ -1,12 +1,12 @@
-use chrono::{naive::NaiveDateTime, offset::FixedOffset, DateTime, TimeZone, Utc};
+use chrono::{offset::FixedOffset, TimeZone};
 use crossterm::{
     cursor,
-    event::{self, KeyCode},
+    event::KeyCode,
     queue,
     style::{Attribute, Color::*},
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use git2::{Commit, Repository, Sort};
+use git2::{Commit, Repository, RepositoryState, Sort};
 use lazy_static::lazy_static;
 use std::error::Error;
 use std::io::Write;
@@ -41,7 +41,6 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let pwd = std::env::current_dir()?;
     let repo = Repository::discover(pwd)?;
-    let mut area = Area::full_screen();
     let columns = vec![
         ListViewColumn::new(
             "commit date",
@@ -71,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         ListViewColumn::new(
             "message",
             6,
-            50,
+            120,
             Box::new(|t: &Commit| {
                 ListViewCell::new(
                     t.summary().unwrap().to_string(),
@@ -81,9 +80,26 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         )
         .with_align(Alignment::Left),
     ];
-    // let repo = Repository::open("/home/abusch/code/rust/rustracer").unwrap();
-    let mut commit_list = ListView::new(area, columns, &SKIN);
 
+    let (width, height) = terminal::size()?;
+    let title_area = Area::new(0, 0, width, 1);
+    let list_area = Area::new(0, 1, width, height - 2);
+    let mut commit_list = ListView::new(list_area, columns, &SKIN);
+
+    let state = match repo.state() {
+        RepositoryState::Clean => "".to_string(),
+        s => format!("{:?}", s),
+    };
+
+    SKIN.write_in_area_on(
+        &mut w,
+        &format!(
+            "# **{}**  *{}*",
+            repo.workdir().unwrap_or_else(|| repo.path()).display(),
+            state
+        ),
+        &title_area,
+    )?;
     // println!("State: {:?}", repo.state());
     // if let Some(path) = repo.workdir() {
     //     println!("Workdir: {}", path.display());
@@ -94,18 +110,13 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut revwalk = repo.revwalk().unwrap();
     revwalk.set_sorting(Sort::TOPOLOGICAL);
     revwalk.push_head().unwrap();
-    let mut count = 0;
     for oid in revwalk {
         let oid = oid.unwrap();
         let commit = repo.find_commit(oid).unwrap();
         commit_list.add_row(commit);
-        count += 1;
     }
-    // commit_list.try_scroll_lines(-count);
     commit_list.select_first_line();
     commit_list.update_dimensions();
-
-    commit_list.write().unwrap();
 
     // let statuses = repo.statuses(None).unwrap();
 
@@ -127,6 +138,11 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                 PAGE_DOWN => commit_list.try_scroll_pages(1),
                 HOME => commit_list.select_first_line(),
                 END => commit_list.select_last_line(),
+                Event::Resize(w, h) => {
+                    commit_list.area.width = w;
+                    commit_list.area.height = h;
+                    commit_list.update_dimensions();
+                }
                 ESC => quit = true,
                 _ => (),
             }
