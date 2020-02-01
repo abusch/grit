@@ -8,13 +8,14 @@ use crossterm::{
     style::{Attribute, Color::*},
     terminal::{self, Clear, ClearType},
 };
-use git2::{Commit, Repository, RepositoryState, Sort};
+use git2::{Commit, Oid, Repository, RepositoryState, Sort};
 use lazy_static::lazy_static;
 use termimad::{
     ansi, Alignment, Area, CompoundStyle, ListView, ListViewCell, ListViewColumn, MadSkin,
 };
 
 pub struct CommitInfo {
+    pub oid: Oid,
     pub time: DateTime<FixedOffset>,
     pub author: String,
     pub message: String,
@@ -26,6 +27,7 @@ impl CommitInfo {
         let offset = FixedOffset::east(when.offset_minutes() * 60);
         let date_time = offset.timestamp(when.seconds(), 0);
         Self {
+            oid: commit.id(),
             time: date_time,
             author: commit
                 .author()
@@ -135,10 +137,16 @@ impl<'t> Screen<'t> {
         )?;
         self.commit_list.write_on(w)?;
 
+        let oid = if let Some(commit) = self.commit_list.get_selection() {
+            commit.oid
+        } else {
+            Oid::zero()
+        };
+
         let status_area = Area::new(0, height - 1, width, 1);
         self.skin.write_in_area_on(
             w,
-            "Press *esc* to quit, *↑,↓,PgUp,PgDn* to navigate",
+            &format!("Press *esc* to quit, *↑,↓,PgUp,PgDn* to navigate {}", oid),
             &status_area,
         )?;
 

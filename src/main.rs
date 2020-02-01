@@ -15,6 +15,8 @@ mod screen;
 
 const UP: Event = Event::simple_key(KeyCode::Up);
 const DOWN: Event = Event::simple_key(KeyCode::Down);
+const J: Event = Event::simple_key(KeyCode::Char('j'));
+const K: Event = Event::simple_key(KeyCode::Char('k'));
 const PAGE_UP: Event = Event::simple_key(KeyCode::PageUp);
 const PAGE_DOWN: Event = Event::simple_key(KeyCode::PageDown);
 const HOME: Event = Event::simple_key(KeyCode::Home);
@@ -42,10 +44,18 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         screen.display(&mut w)?;
         if let Ok(event) = rx.recv() {
             match event {
-                UP => screen.commit_list.try_select_next(true),
-                DOWN => screen.commit_list.try_select_next(false),
-                PAGE_UP => screen.commit_list.try_scroll_pages(-1),
-                PAGE_DOWN => screen.commit_list.try_scroll_pages(1),
+                UP | K => screen.commit_list.try_select_next(true),
+                DOWN | J => screen.commit_list.try_select_next(false),
+                PAGE_UP => {
+                    screen.commit_list.unselect();
+                    screen.commit_list.try_scroll_pages(-1);
+                    screen.commit_list.try_select_next(false);
+                }
+                PAGE_DOWN => {
+                    screen.commit_list.unselect();
+                    screen.commit_list.try_scroll_pages(1);
+                    screen.commit_list.try_select_next(false);
+                }
                 HOME => screen.commit_list.select_first_line(),
                 END => screen.commit_list.select_last_line(),
                 Event::Resize(w, h) => {
