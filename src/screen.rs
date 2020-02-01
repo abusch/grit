@@ -69,7 +69,8 @@ impl<'t> Screen<'t> {
                 Box::new(|t: &CommitInfo| {
                     ListViewCell::new(t.author.clone(), &SKIN.paragraph.compound_style)
                 }),
-            ),
+            )
+            .with_align(Alignment::Left),
             ListViewColumn::new(
                 "message",
                 6,
@@ -95,6 +96,7 @@ impl<'t> Screen<'t> {
         }
         // commit_list.select_first_line();
         commit_list.update_dimensions();
+        commit_list.select_first_line();
 
         Ok(Self {
             repo,
@@ -132,6 +134,13 @@ impl<'t> Screen<'t> {
             &title_area,
         )?;
         self.commit_list.write_on(w)?;
+
+        let status_area = Area::new(0, height - 1, width, 1);
+        self.skin.write_in_area_on(
+            w,
+            "Press *esc* to quit, *↑,↓,PgUp,PgDn* to navigate",
+            &status_area,
+        )?;
 
         Ok(())
     }
