@@ -1,0 +1,3 @@
+# grit: a git TUI in rust
+
+more to come...
