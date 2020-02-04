@@ -1,7 +1,6 @@
-use crate::BoxError;
-
 use std::io::Write;
 
+use anyhow::Result;
 use chrono::{offset::FixedOffset, DateTime, TimeZone};
 use crossterm::{
     queue,
@@ -54,7 +53,7 @@ pub struct Screen<'t> {
 }
 
 impl<'t> Screen<'t> {
-    pub fn new(repo: Repository) -> Result<Self, BoxError> {
+    pub fn new(repo: Repository) -> Result<Self> {
         let columns = vec![
             ListViewColumn::new(
                 "commit date",
@@ -108,13 +107,11 @@ impl<'t> Screen<'t> {
         })
     }
 
-    pub fn display<W: Write>(&mut self, w: &mut W) -> Result<(), BoxError> {
+    pub fn display<W: Write>(&mut self, w: &mut W) -> Result<()> {
         let (width, height) = terminal::size()?;
         if (width, height) != self.dimensions {
             queue!(w, Clear(ClearType::All))?;
-            self.commit_list.area.width = width;
-            self.commit_list.area.height = height - 2;
-            self.commit_list.update_dimensions();
+            self.resize(width, height);
         }
 
         let title_area = Area::new(0, 0, width, 1);
@@ -151,6 +148,25 @@ impl<'t> Screen<'t> {
         )?;
 
         Ok(())
+    }
+
+    pub fn prev_page(&mut self) {
+        self.commit_list.unselect();
+        self.commit_list.try_scroll_pages(-1);
+        self.commit_list.try_select_next(false);
+    }
+
+    pub fn next_page(&mut self) {
+        self.commit_list.unselect();
+        self.commit_list.try_scroll_pages(1);
+        self.commit_list.try_select_next(false);
+    }
+
+    pub fn resize(&mut self, width: u16, height: u16) {
+        self.dimensions = (width, height);
+        self.commit_list.area.width = width;
+        self.commit_list.area.height = height - 2;
+        self.commit_list.update_dimensions();
     }
 }
 

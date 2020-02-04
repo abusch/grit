@@ -1,3 +1,4 @@
+use anyhow::Result;
 use crossterm::{
     cursor,
     event::KeyCode,
@@ -5,7 +6,6 @@ use crossterm::{
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use git2::Repository;
-use std::error::Error;
 use std::io::Write;
 use termimad::{Event, EventSource};
 
@@ -22,10 +22,9 @@ const PAGE_DOWN: Event = Event::simple_key(KeyCode::PageDown);
 const HOME: Event = Event::simple_key(KeyCode::Home);
 const END: Event = Event::simple_key(KeyCode::End);
 const ESC: Event = Event::simple_key(KeyCode::Esc);
+const ENTER: Event = Event::simple_key(KeyCode::Enter);
 
-pub type BoxError = Box<dyn Error + Send + Sync>;
-
-fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+fn main() -> Result<()> {
     let mut w = std::io::stderr();
 
     queue!(w, EnterAlternateScreen)?;
@@ -46,22 +45,15 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             match event {
                 UP | K => screen.commit_list.try_select_next(true),
                 DOWN | J => screen.commit_list.try_select_next(false),
-                PAGE_UP => {
-                    screen.commit_list.unselect();
-                    screen.commit_list.try_scroll_pages(-1);
-                    screen.commit_list.try_select_next(false);
-                }
-                PAGE_DOWN => {
-                    screen.commit_list.unselect();
-                    screen.commit_list.try_scroll_pages(1);
-                    screen.commit_list.try_select_next(false);
-                }
+                PAGE_UP => screen.prev_page(),
+                PAGE_DOWN => screen.next_page(),
                 HOME => screen.commit_list.select_first_line(),
                 END => screen.commit_list.select_last_line(),
-                Event::Resize(w, h) => {
-                    screen.commit_list.area.width = w;
-                    screen.commit_list.area.height = h;
-                    screen.commit_list.update_dimensions();
+                Event::Resize(w, h) => screen.resize(w, h),
+                ENTER => {
+                    if let Some(commit) = screen.commit_list.get_selection() {
+                        println!("{}", commit.oid);
+                    }
                 }
                 ESC => quit = true,
                 _ => (),
