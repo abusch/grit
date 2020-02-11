@@ -95,7 +95,6 @@ impl<'t> Screen<'t> {
             let commit = repo.find_commit(oid).unwrap();
             commit_list.add_row(CommitInfo::new(commit));
         }
-        // commit_list.select_first_line();
         commit_list.update_dimensions();
         commit_list.select_first_line();
 
@@ -108,44 +107,9 @@ impl<'t> Screen<'t> {
     }
 
     pub fn display<W: Write>(&mut self, w: &mut W) -> Result<()> {
-        let (width, height) = terminal::size()?;
-        if (width, height) != self.dimensions {
-            queue!(w, Clear(ClearType::All))?;
-            self.resize(width, height);
-        }
-
-        let title_area = Area::new(0, 0, width, 1);
-        let state = match self.repo.state() {
-            RepositoryState::Clean => "".to_string(),
-            s => format!("{:?}", s),
-        };
-
-        self.skin.write_in_area_on(
-            w,
-            &format!(
-                "# **{}**  *{}*",
-                self.repo
-                    .workdir()
-                    .unwrap_or_else(|| self.repo.path())
-                    .display(),
-                state
-            ),
-            &title_area,
-        )?;
+        self.display_title(w)?;
         self.commit_list.write_on(w)?;
-
-        let oid = if let Some(commit) = self.commit_list.get_selection() {
-            commit.oid
-        } else {
-            Oid::zero()
-        };
-
-        let status_area = Area::new(0, height - 1, width, 1);
-        self.skin.write_in_area_on(
-            w,
-            &format!("Press *esc* to quit, *↑,↓,PgUp,PgDn* to navigate {}", oid),
-            &status_area,
-        )?;
+        self.display_status(w)?;
 
         Ok(())
     }
@@ -167,6 +131,47 @@ impl<'t> Screen<'t> {
         self.commit_list.area.width = width;
         self.commit_list.area.height = height - 2;
         self.commit_list.update_dimensions();
+    }
+
+    fn display_title<W: Write>(&mut self, w: &mut W) -> Result<()> {
+        let (width, _height) = self.dimensions;
+        let title_area = Area::new(0, 0, width, 1);
+        let state = match self.repo.state() {
+            RepositoryState::Clean => "".to_string(),
+            s => format!("{:?}", s),
+        };
+
+        self.skin.write_in_area_on(
+            w,
+            &format!(
+                "# **{}**  *{}*",
+                self.repo
+                    .workdir()
+                    .unwrap_or_else(|| self.repo.path())
+                    .display(),
+                state
+            ),
+            &title_area,
+        )?;
+        Ok(())
+    }
+
+    fn display_status<W: Write>(&mut self, w: &mut W) -> Result<()> {
+        let (width, height) = self.dimensions;
+        let oid = if let Some(commit) = self.commit_list.get_selection() {
+            commit.oid
+        } else {
+            Oid::zero()
+        };
+
+        let status_area = Area::new(0, height - 1, width, 1);
+        self.skin.write_in_area_on(
+            w,
+            &format!("Press *esc* to quit, *↑,↓,PgUp,PgDn* to navigate {}", oid),
+            &status_area,
+        )?;
+
+        Ok(())
     }
 }
 
