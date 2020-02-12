@@ -11,6 +11,7 @@ use termimad::{Event, EventSource};
 
 use screen::Screen;
 
+mod graph;
 mod screen;
 
 const UP: Event = Event::simple_key(KeyCode::Up);
