@@ -1,3 +1,4 @@
+use anyhow::Result;
 use crossterm::{
     cursor,
     event::KeyCode,
@@ -5,7 +6,6 @@ use crossterm::{
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use git2::Repository;
-use std::error::Error;
 use std::io::Write;
 use termimad::{Event, EventSource};
 
@@ -23,9 +23,7 @@ const HOME: Event = Event::simple_key(KeyCode::Home);
 const END: Event = Event::simple_key(KeyCode::End);
 const ESC: Event = Event::simple_key(KeyCode::Esc);
 
-pub type BoxError = Box<dyn Error + Send + Sync>;
-
-fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+fn main() -> Result<()> {
     let mut w = std::io::stderr();
 
     queue!(w, EnterAlternateScreen)?;

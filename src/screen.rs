@@ -1,7 +1,6 @@
-use crate::BoxError;
-
 use std::io::Write;
 
+use anyhow::Result;
 use chrono::{offset::FixedOffset, DateTime, TimeZone};
 use crossterm::{
     queue,
@@ -54,7 +53,7 @@ pub struct Screen<'t> {
 }
 
 impl<'t> Screen<'t> {
-    pub fn new(repo: Repository) -> Result<Self, BoxError> {
+    pub fn new(repo: Repository) -> Result<Self> {
         let columns = vec![
             ListViewColumn::new(
                 "commit date",
@@ -88,9 +87,9 @@ impl<'t> Screen<'t> {
         let list_area = Area::new(0, 1, width, height - 2);
         let mut commit_list = ListView::new(list_area, columns, &SKIN);
 
-        let mut revwalk = repo.revwalk().unwrap();
-        revwalk.set_sorting(Sort::TOPOLOGICAL);
-        revwalk.push_head().unwrap();
+        let mut revwalk = repo.revwalk()?;
+        revwalk.set_sorting(Sort::TOPOLOGICAL)?;
+        revwalk.push_head()?;
         for oid in revwalk {
             let oid = oid.unwrap();
             let commit = repo.find_commit(oid).unwrap();
@@ -108,7 +107,7 @@ impl<'t> Screen<'t> {
         })
     }
 
-    pub fn display<W: Write>(&mut self, w: &mut W) -> Result<(), BoxError> {
+    pub fn display<W: Write>(&mut self, w: &mut W) -> Result<()> {
         let (width, height) = terminal::size()?;
         if (width, height) != self.dimensions {
             queue!(w, Clear(ClearType::All))?;
