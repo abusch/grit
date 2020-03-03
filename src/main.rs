@@ -23,13 +23,7 @@ const HOME: Event = Event::simple_key(KeyCode::Home);
 const END: Event = Event::simple_key(KeyCode::End);
 const ESC: Event = Event::simple_key(KeyCode::Esc);
 
-fn main() -> Result<()> {
-    let mut w = std::io::stderr();
-
-    queue!(w, EnterAlternateScreen)?;
-    terminal::enable_raw_mode()?;
-    queue!(w, cursor::Hide)?; // hiding the cursor
-
+fn run_app<W: Write>(w: &mut W) -> Result<()> {
     let events = EventSource::new()?;
     let rx = events.receiver();
 
@@ -39,7 +33,7 @@ fn main() -> Result<()> {
     let mut screen = Screen::new(repo)?;
     loop {
         let mut quit = false;
-        screen.display(&mut w)?;
+        screen.display(w)?;
         if let Ok(event) = rx.recv() {
             match event {
                 UP | K => screen.commit_list.try_select_next(true),
@@ -71,10 +65,22 @@ fn main() -> Result<()> {
         events.unblock(quit);
     }
 
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    let mut w = std::io::stderr();
+
+    queue!(w, EnterAlternateScreen)?;
+    terminal::enable_raw_mode()?;
+    queue!(w, cursor::Hide)?; // hiding the cursor
+
+    let result = run_app(&mut w);
+
     terminal::disable_raw_mode()?;
     queue!(w, cursor::Show)?; // we must restore the cursor
     queue!(w, LeaveAlternateScreen)?;
     w.flush()?;
 
-    Ok(())
+    result
 }
