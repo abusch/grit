@@ -107,7 +107,7 @@ impl<'t> Screen<'t> {
         })
     }
 
-    pub fn display<W: Write>(&mut self, w: &mut W) -> Result<()> {
+    pub fn display(&mut self, mut w: &mut dyn Write) -> Result<()> {
         let (width, height) = terminal::size()?;
         if (width, height) != self.dimensions {
             queue!(w, Clear(ClearType::All))?;
@@ -123,7 +123,7 @@ impl<'t> Screen<'t> {
         };
 
         self.skin.write_in_area_on(
-            w,
+            &mut w,
             &format!(
                 "# **{}**  *{}*",
                 self.repo
@@ -134,7 +134,7 @@ impl<'t> Screen<'t> {
             ),
             &title_area,
         )?;
-        self.commit_list.write_on(w)?;
+        self.commit_list.write_on(&mut w)?;
 
         let oid = if let Some(commit) = self.commit_list.get_selection() {
             commit.oid
@@ -144,7 +144,7 @@ impl<'t> Screen<'t> {
 
         let status_area = Area::new(0, height - 1, width, 1);
         self.skin.write_in_area_on(
-            w,
+            &mut w,
             &format!("Press *esc* to quit, *↑,↓,PgUp,PgDn* to navigate {}", oid),
             &status_area,
         )?;
