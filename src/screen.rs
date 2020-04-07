@@ -1,155 +1,27 @@
-use std::io::Write;
-
 use anyhow::Result;
-use chrono::{offset::FixedOffset, DateTime, TimeZone};
 use crossterm::{
-    queue,
     style::{Attribute, Color::*},
-    terminal::{self, Clear, ClearType},
+    terminal,
 };
-use git2::{Commit, Oid, Repository, RepositoryState, Sort};
 use lazy_static::lazy_static;
-use termimad::{
-    ansi, Alignment, Area, CompoundStyle, ListView, ListViewCell, ListViewColumn, MadSkin,
-};
-
-pub struct CommitInfo {
-    pub oid: Oid,
-    pub time: DateTime<FixedOffset>,
-    pub author: String,
-    pub message: String,
-}
-
-impl CommitInfo {
-    pub fn new(commit: Commit) -> Self {
-        let when = commit.author().when();
-        let offset = FixedOffset::east(when.offset_minutes() * 60);
-        let date_time = offset.timestamp(when.seconds(), 0);
-        Self {
-            oid: commit.id(),
-            time: date_time,
-            author: commit
-                .author()
-                .name()
-                .unwrap_or_else(|| "<invalid utf8>")
-                .to_string(),
-            message: commit
-                .summary()
-                .unwrap_or_else(|| "<invalid utf8>")
-                .to_string(),
-        }
-    }
-}
+use termimad::{ansi, Alignment, CompoundStyle, MadSkin};
 
 lazy_static! {
     static ref SKIN: MadSkin = make_skin();
 }
 
-pub struct Screen<'t> {
-    repo: Repository,
-    pub commit_list: ListView<'t, CommitInfo>,
-    dimensions: (u16, u16),
-    skin: &'t MadSkin,
+pub struct Screen {
+    pub dimensions: (u16, u16),
+    pub skin: MadSkin,
 }
 
-impl<'t> Screen<'t> {
-    pub fn new(repo: Repository) -> Result<Self> {
-        let columns = vec![
-            ListViewColumn::new(
-                "commit date",
-                6,
-                26,
-                Box::new(|t: &CommitInfo| {
-                    ListViewCell::new(t.time.to_string(), &SKIN.paragraph.compound_style)
-                }),
-            ),
-            ListViewColumn::new(
-                "author",
-                6,
-                20,
-                Box::new(|t: &CommitInfo| {
-                    ListViewCell::new(t.author.clone(), &SKIN.paragraph.compound_style)
-                }),
-            )
-            .with_align(Alignment::Left),
-            ListViewColumn::new(
-                "message",
-                6,
-                120,
-                Box::new(|t: &CommitInfo| {
-                    ListViewCell::new(t.message.clone(), &SKIN.paragraph.compound_style)
-                }),
-            )
-            .with_align(Alignment::Left),
-        ];
-
+impl Screen {
+    pub fn new() -> Result<Self> {
         let (width, height) = terminal::size()?;
-        let list_area = Area::new(0, 1, width, height - 2);
-        let mut commit_list = ListView::new(list_area, columns, &SKIN);
-
-        let mut revwalk = repo.revwalk()?;
-        revwalk.set_sorting(Sort::TOPOLOGICAL)?;
-        revwalk.push_head()?;
-        for oid in revwalk {
-            let oid = oid.unwrap();
-            let commit = repo.find_commit(oid).unwrap();
-            commit_list.add_row(CommitInfo::new(commit));
-        }
-        // commit_list.select_first_line();
-        commit_list.update_dimensions();
-        commit_list.select_first_line();
-
         Ok(Self {
-            repo,
-            commit_list,
-            skin: &SKIN,
+            skin: make_skin(),
             dimensions: (width, height),
         })
-    }
-
-    pub fn display(&mut self, mut w: &mut dyn Write) -> Result<()> {
-        let (width, height) = terminal::size()?;
-        if (width, height) != self.dimensions {
-            queue!(w, Clear(ClearType::All))?;
-            self.commit_list.area.width = width;
-            self.commit_list.area.height = height - 2;
-            self.commit_list.update_dimensions();
-        }
-
-        let title_area = Area::new(0, 0, width, 1);
-        let state = match self.repo.state() {
-            RepositoryState::Clean => "".to_string(),
-            s => format!("{:?}", s),
-        };
-
-        self.skin.write_in_area_on(
-            &mut w,
-            &format!(
-                "# **{}**  *{}*",
-                self.repo
-                    .workdir()
-                    .unwrap_or_else(|| self.repo.path())
-                    .display(),
-                state
-            ),
-            &title_area,
-        )?;
-        self.commit_list.write_on(&mut w)?;
-
-        let oid = if let Some(commit) = self.commit_list.get_selection() {
-            commit.oid
-        } else {
-            Oid::zero()
-        };
-
-        let status_area = Area::new(0, height - 1, width, 1);
-        self.skin.write_in_area_on(
-            &mut w,
-            &format!("Press *esc* to quit, *↑,↓,PgUp,PgDn* to navigate {}", oid),
-            &status_area,
-        )?;
-
-        Ok(())
     }
 }
 

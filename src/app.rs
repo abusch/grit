@@ -2,9 +2,14 @@ use std::io::Write;
 
 use anyhow::Result;
 use git2::Repository;
-use termimad::{Event, EventSource};
+use termimad::EventSource;
 
-use crate::{keys::*, screen::Screen, state::AppState};
+use crate::{
+    context::AppContext,
+    log_state::LogState,
+    screen::Screen,
+    state::{AppState, CommandResult},
+};
 
 pub struct App {
     states: Vec<Box<dyn AppState>>,
@@ -15,6 +20,18 @@ impl App {
         Self { states: Vec::new() }
     }
 
+    fn push(&mut self, state: Box<dyn AppState>) {
+        self.states.push(state);
+    }
+
+    fn state(&self) -> &dyn AppState {
+        self.states.last().expect("no state found!").as_ref()
+    }
+
+    fn state_mut(&mut self) -> &mut dyn AppState {
+        self.states.last_mut().expect("no state found!").as_mut()
+    }
+
     pub fn run(&mut self, w: &mut dyn Write) -> Result<()> {
         let events = EventSource::new()?;
         let rx = events.receiver();
@@ -22,33 +39,19 @@ impl App {
         let pwd = std::env::current_dir()?;
         let repo = Repository::discover(pwd)?;
 
-        let mut screen = Screen::new(repo)?;
+        let log_state = Box::new(LogState::new(&repo)?) as Box<dyn AppState>;
+        self.push(log_state);
+
+        let ctx = AppContext { repo };
+        let screen = Screen::new()?;
         loop {
             let mut quit = false;
-            screen.display(w)?;
+            self.state_mut().display(w, &ctx, &screen)?;
             if let Ok(event) = rx.recv() {
-                match event {
-                    UP | K => screen.commit_list.try_select_next(true),
-                    DOWN | J => screen.commit_list.try_select_next(false),
-                    PAGE_UP => {
-                        screen.commit_list.unselect();
-                        screen.commit_list.try_scroll_pages(-1);
-                        screen.commit_list.try_select_next(false);
-                    }
-                    PAGE_DOWN => {
-                        screen.commit_list.unselect();
-                        screen.commit_list.try_scroll_pages(1);
-                        screen.commit_list.try_select_next(false);
-                    }
-                    HOME => screen.commit_list.select_first_line(),
-                    END => screen.commit_list.select_last_line(),
-                    Event::Resize(w, h) => {
-                        screen.commit_list.area.width = w;
-                        screen.commit_list.area.height = h;
-                        screen.commit_list.update_dimensions();
-                    }
-                    ESC | Q => quit = true,
-                    _ => (),
+                match self.state_mut().handle_event(event) {
+                    CommandResult::Keep => (),
+                    CommandResult::Quit => quit = true,
+                    _ => (), // ignore for now
                 }
             } else {
                 break;

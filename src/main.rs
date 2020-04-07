@@ -8,6 +8,8 @@ use std::io::Write;
 use app::App;
 
 mod app;
+mod context;
+mod git;
 mod keys;
 mod log_state;
 mod screen;
