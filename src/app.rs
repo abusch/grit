@@ -2,6 +2,7 @@ use std::io::Write;
 
 use anyhow::Result;
 use git2::Repository;
+use log::debug;
 use termimad::EventSource;
 
 use crate::{
@@ -24,18 +25,18 @@ impl App {
         self.states.push(state);
     }
 
-    ///
     /// Pops the current state from the stack, and return true if this was the last one
-    ///
     fn pop(&mut self) -> bool {
         self.states.pop();
         self.states.is_empty()
     }
 
+    /// Return a reference to the current `AppState`
     fn state(&self) -> &dyn AppState {
         self.states.last().expect("no state found!").as_ref()
     }
 
+    /// Return a mutable reference to the current `AppState`
     fn state_mut(&mut self) -> &mut dyn AppState {
         self.states.last_mut().expect("no state found!").as_mut()
     }
@@ -44,6 +45,7 @@ impl App {
         let events = EventSource::new()?;
         let rx = events.receiver();
 
+        debug!("Opening git repository");
         let pwd = std::env::current_dir()?;
         let repo = Repository::discover(pwd)?;
 
@@ -62,7 +64,7 @@ impl App {
                     _ => (), // ignore for now
                 }
             } else {
-                // When no more events, time to quite
+                // When no more events, time to quit
                 break;
             }
 
