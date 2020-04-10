@@ -8,7 +8,7 @@ use crate::{context::AppContext, screen::Screen};
 pub enum CommandResult {
     Keep,
     ChangeState(Box<dyn AppState>),
-    Quit,
+    PopState,
 }
 
 pub trait AppState {

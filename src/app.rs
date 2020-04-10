@@ -24,6 +24,14 @@ impl App {
         self.states.push(state);
     }
 
+    ///
+    /// Pops the current state from the stack, and return true if this was the last one
+    ///
+    fn pop(&mut self) -> bool {
+        self.states.pop();
+        self.states.is_empty()
+    }
+
     fn state(&self) -> &dyn AppState {
         self.states.last().expect("no state found!").as_ref()
     }
@@ -44,17 +52,22 @@ impl App {
 
         let ctx = AppContext { repo };
         let screen = Screen::new()?;
+        self.state_mut().display(w, &ctx, &screen)?;
         loop {
             let mut quit = false;
-            self.state_mut().display(w, &ctx, &screen)?;
             if let Ok(event) = rx.recv() {
                 match self.state_mut().handle_event(event) {
                     CommandResult::Keep => (),
-                    CommandResult::Quit => quit = true,
+                    CommandResult::PopState => quit = self.pop(),
                     _ => (), // ignore for now
                 }
             } else {
+                // When no more events, time to quite
                 break;
+            }
+
+            if !quit {
+                self.state_mut().display(w, &ctx, &screen)?;
             }
 
             events.unblock(quit);

@@ -120,7 +120,7 @@ impl<'t> AppState for LogState<'t> {
                 self.commit_list.update_dimensions();
                 CommandResult::Keep
             }
-            ESC | Q => CommandResult::Quit,
+            ESC | Q => CommandResult::PopState,
             _ => CommandResult::Keep,
         }
     }
