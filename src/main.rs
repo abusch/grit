@@ -5,7 +5,7 @@ use crossterm::{
     cursor, queue,
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use log::debug;
+use log::{debug, info};
 
 use app::App;
 
@@ -38,8 +38,23 @@ fn init_logging() -> Result<()> {
 fn main() -> Result<()> {
     let mut w = std::io::stderr();
 
-    init_logging()?;
+    let app = clap::App::new("grit")
+        .version("0.2")
+        .author("Antoine Büsch <antoine.busch@gmail.com")
+        .about("A text-mode UI for git")
+        .arg(
+            clap::Arg::with_name("debug")
+                .short("d")
+                .long("debug")
+                .help("Enable debug logging"),
+        )
+        .get_matches();
 
+    if app.is_present("debug") {
+        init_logging()?;
+    }
+
+    info!("Starting grit v0.2");
     debug!("Setting up terminal");
     queue!(w, EnterAlternateScreen)?;
     terminal::enable_raw_mode()?;

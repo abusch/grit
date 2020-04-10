@@ -10,6 +10,7 @@ description = "a git tui in rust"
 [dependencies]
 anyhow="1"
 chrono="0.4"
+clap="2"
 crossterm="0.16"
 fern="0.6"
 git2="0.13"
