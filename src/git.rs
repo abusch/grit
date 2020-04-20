@@ -1,6 +1,7 @@
 use chrono::{DateTime, FixedOffset, TimeZone};
 use git2::{Commit, Oid};
 
+#[derive(Debug, Clone)]
 pub struct CommitInfo {
     pub oid: Oid,
     pub time: DateTime<FixedOffset>,

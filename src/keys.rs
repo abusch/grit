@@ -11,3 +11,4 @@ pub const HOME: Event = Event::simple_key(KeyCode::Home);
 pub const END: Event = Event::simple_key(KeyCode::End);
 pub const ESC: Event = Event::simple_key(KeyCode::Esc);
 pub const Q: Event = Event::simple_key(KeyCode::Char('q'));
+pub const ENTER: Event = Event::simple_key(KeyCode::Enter);

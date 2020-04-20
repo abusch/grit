@@ -8,11 +8,13 @@ use crossterm::{
 };
 use git2::{Oid, Repository, RepositoryState, Sort};
 use lazy_static::lazy_static;
+use log::debug;
 use termimad::{
     ansi, Alignment, Area, CompoundStyle, Event, ListView, ListViewCell, ListViewColumn, MadSkin,
 };
 
 use crate::{
+    commit_state::CommitState,
     context::AppContext,
     git::CommitInfo,
     keys::*,
@@ -86,6 +88,15 @@ impl<'t> LogState<'t> {
 impl<'t> AppState for LogState<'t> {
     fn handle_event(&mut self, event: Event) -> CommandResult {
         match event {
+            ENTER => {
+                if let Some(commit) = self.commit_list.get_selection().cloned() {
+                    debug!("Opening commit {}", commit.oid);
+                    let new_state = Box::new(CommitState::new(commit));
+                    CommandResult::ChangeState(new_state)
+                } else {
+                    CommandResult::Keep
+                }
+            }
             UP | K => {
                 self.commit_list.try_select_next(true);
                 CommandResult::Keep

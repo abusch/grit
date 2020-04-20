@@ -10,6 +10,7 @@ use log::{debug, info};
 use app::App;
 
 mod app;
+mod commit_state;
 mod context;
 mod git;
 mod keys;

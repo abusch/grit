@@ -60,6 +60,7 @@ impl App {
             if let Ok(event) = rx.recv() {
                 match self.state_mut().handle_event(event) {
                     CommandResult::Keep => (),
+                    CommandResult::ChangeState(new_state) => self.push(new_state),
                     CommandResult::PopState => quit = self.pop(),
                     _ => (), // ignore for now
                 }
