@@ -16,6 +16,7 @@ mod git;
 mod keys;
 mod log_state;
 mod screen;
+mod skin;
 mod state;
 
 fn init_logging() -> Result<()> {

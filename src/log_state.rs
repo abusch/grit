@@ -3,15 +3,11 @@ use std::io::Write;
 use anyhow::Result;
 use crossterm::{
     queue,
-    style::{Attribute, Color::*},
     terminal::{self, Clear, ClearType},
 };
 use git2::{Oid, Repository, RepositoryState, Sort};
-use lazy_static::lazy_static;
 use log::debug;
-use termimad::{
-    ansi, Alignment, Area, CompoundStyle, Event, ListView, ListViewCell, ListViewColumn, MadSkin,
-};
+use termimad::{Alignment, Area, Event, ListView, ListViewCell, ListViewColumn};
 
 use crate::{
     commit_state::CommitState,
@@ -19,12 +15,9 @@ use crate::{
     git::CommitInfo,
     keys::*,
     screen::Screen,
+    skin::SKIN,
     state::{AppState, CommandResult},
 };
-
-lazy_static! {
-    static ref SKIN: MadSkin = make_skin();
-}
 
 pub struct LogState<'t> {
     pub dimensions: (u16, u16),
@@ -38,17 +31,13 @@ impl<'t> LogState<'t> {
                 "commit date",
                 6,
                 26,
-                Box::new(|t: &CommitInfo| {
-                    ListViewCell::new(t.time.to_string(), &SKIN.paragraph.compound_style)
-                }),
+                Box::new(|t: &CommitInfo| ListViewCell::new(t.time.to_string(), &SKIN.commit_date)),
             ),
             ListViewColumn::new(
                 "author",
                 6,
                 20,
-                Box::new(|t: &CommitInfo| {
-                    ListViewCell::new(t.author.clone(), &SKIN.paragraph.compound_style)
-                }),
+                Box::new(|t: &CommitInfo| ListViewCell::new(t.author.clone(), &SKIN.commit_author)),
             )
             .with_align(Alignment::Left),
             ListViewColumn::new(
@@ -56,7 +45,7 @@ impl<'t> LogState<'t> {
                 6,
                 120,
                 Box::new(|t: &CommitInfo| {
-                    ListViewCell::new(t.message.clone(), &SKIN.paragraph.compound_style)
+                    ListViewCell::new(t.message.clone(), &SKIN.commit_message)
                 }),
             )
             .with_align(Alignment::Left),
@@ -64,7 +53,7 @@ impl<'t> LogState<'t> {
 
         let (width, height) = terminal::size()?;
         let list_area = Area::new(0, 1, width, height - 2);
-        let mut commit_list = ListView::new(list_area, columns, &SKIN);
+        let mut commit_list = ListView::new(list_area, columns, &SKIN.normal);
 
         let mut revwalk = repo.revwalk()?;
         revwalk.set_sorting(Sort::TOPOLOGICAL)?;
@@ -180,13 +169,4 @@ impl<'t> AppState for LogState<'t> {
 
         Ok(())
     }
-}
-
-fn make_skin() -> MadSkin {
-    let mut skin = MadSkin::default();
-    skin.headers[0].compound_style = CompoundStyle::with_attr(Attribute::Bold);
-    skin.headers[0].align = Alignment::Left;
-    skin.italic.set_fg(ansi(225));
-    skin.bold = CompoundStyle::with_fg(Blue);
-    skin
 }

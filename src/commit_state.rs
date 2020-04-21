@@ -43,7 +43,7 @@ impl AppState for CommitState {
             .set("message", &self.commit_info.message);
         let text = FmtText::from_text(&screen.skin, expander.expand(), Some(width as usize));
         let tv = TextView::from(&area, &text);
-        tv.write_on(&mut w);
+        tv.write_on(&mut w)?;
 
         Ok(())
     }
