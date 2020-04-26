@@ -1,3 +1,7 @@
+#![warn(missing_docs, missing_debug_implementations)]
+//! `grit` is a text mode ui for git.
+//!
+//! (c) 2020 Antoine Busch
 use std::io::Write;
 
 use anyhow::Result;
@@ -7,17 +11,7 @@ use crossterm::{
 };
 use log::{debug, info};
 
-use app::App;
-
-mod app;
-mod commit_state;
-mod context;
-mod git;
-mod keys;
-mod log_state;
-mod screen;
-mod skin;
-mod state;
+use grit::app::App;
 
 fn init_logging() -> Result<()> {
     fern::Dispatch::new()

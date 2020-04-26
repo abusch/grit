@@ -12,11 +12,13 @@ use crate::{
     state::{AppState, CommandResult},
 };
 
+/// Holds the state of the application, as well as main event loop.
 pub struct App {
     states: Vec<Box<dyn AppState>>,
 }
 
 impl App {
+    /// Creates a new instance of `App`.
     pub fn new() -> Self {
         Self { states: Vec::new() }
     }
@@ -41,6 +43,7 @@ impl App {
         self.states.last_mut().expect("no state found!").as_mut()
     }
 
+    /// Main event loop of the application.
     pub fn run(&mut self, w: &mut dyn Write) -> Result<()> {
         let events = EventSource::new()?;
         let rx = events.receiver();
@@ -62,7 +65,6 @@ impl App {
                     CommandResult::Keep => (),
                     CommandResult::ChangeState(new_state) => self.push(new_state),
                     CommandResult::PopState => quit = self.pop(),
-                    _ => (), // ignore for now
                 }
             } else {
                 // When no more events, time to quit

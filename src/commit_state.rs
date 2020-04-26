@@ -32,7 +32,7 @@ impl AppState for CommitState {
         }
     }
 
-    fn display(&mut self, mut w: &mut dyn Write, ctx: &AppContext, screen: &Screen) -> Result<()> {
+    fn display(&mut self, mut w: &mut dyn Write, _ctx: &AppContext, screen: &Screen) -> Result<()> {
         let (width, height) = screen.dimensions;
         let area = Area::new(0, 1, width, height - 2);
         let template = TextTemplate::from(COMMIT_INFO);
