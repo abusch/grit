@@ -75,12 +75,13 @@ impl<'t> LogState<'t> {
 }
 
 impl<'t> AppState for LogState<'t> {
-    fn handle_event(&mut self, event: Event) -> CommandResult {
+    fn handle_event(&mut self, event: Event, ctx: &AppContext) -> CommandResult {
         match event {
             ENTER => {
                 if let Some(commit) = self.commit_list.get_selection().cloned() {
                     debug!("Opening commit {}", commit.oid);
-                    let new_state = Box::new(CommitState::new(commit));
+                    // FIXME
+                    let new_state = Box::new(CommitState::new(commit, ctx).unwrap());
                     CommandResult::ChangeState(new_state)
                 } else {
                     CommandResult::Keep
@@ -140,7 +141,7 @@ impl<'t> AppState for LogState<'t> {
             s => format!("{:?}", s),
         };
 
-        screen.skin.write_in_area_on(
+        screen.skin.normal.write_in_area_on(
             &mut w,
             &format!(
                 "# **{}**  *{}*",
@@ -161,7 +162,7 @@ impl<'t> AppState for LogState<'t> {
         };
 
         let status_area = Area::new(0, height - 1, width, 1);
-        screen.skin.write_in_area_on(
+        screen.skin.normal.write_in_area_on(
             &mut w,
             &format!("Press *esc* to quit, *↑,↓,PgUp,PgDn* to navigate {}", oid),
             &status_area,

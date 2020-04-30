@@ -7,6 +7,7 @@ lazy_static! {
     pub static ref SKIN: Skin = make_skin();
 }
 
+#[derive(Clone)]
 pub struct Skin {
     pub normal: MadSkin,
     pub commit_date: CompoundStyle,

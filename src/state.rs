@@ -18,6 +18,6 @@ pub enum CommandResult {
 /// Different states typically display differently. Examples of states are the log view, or the
 /// commit view, or the status view...
 pub trait AppState {
-    fn handle_event(&mut self, event: Event) -> CommandResult;
+    fn handle_event(&mut self, event: Event, ctx: &AppContext) -> CommandResult;
     fn display(&mut self, w: &mut dyn Write, ctx: &AppContext, screen: &Screen) -> Result<()>;
 }
